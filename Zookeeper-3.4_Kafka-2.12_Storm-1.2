@@ -1,0 +1,62 @@
+version: '2'
+services:
+    zk01:
+        image: zookeeper:latest
+        environment:
+            ZOO_MY_ID: 1
+            ZOO_SERVERS: server.1=0.0.0.0:2888:3888 server.2=zk02:2888:3888
+        restart: on-failure
+    zk02:
+        image: zookeeper:latest
+        environment:
+            ZOO_MY_ID: 2
+            ZOO_SERVERS: server.1=zk01:2888:3888 server.2=0.0.0.0:2888:3888
+        restart: on-failure
+    kafka01:
+        image: wurstmeister/kafka
+        environment:
+            KAFKA_ZOOKEEPER_CONNECT: zk01,zk02
+            KAFKA_LISTENERS: INSIDE://:9092
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT
+            KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+            KAFKA_LOG_DIRS: /logs/kafka-01
+            BROKER_ID: 01
+            JMX_PORT: 1099
+        restart: on-failure
+    kafka02:
+        image: wurstmeister/kafka
+        environment:
+            KAFKA_ZOOKEEPER_CONNECT: zk01,zk02
+            KAFKA_LISTENERS: INSIDE://:9092
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT
+            KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+            KAFKA_LOG_DIRS: /logs/kafka-02
+            BROKER_ID: 02
+            JMX_PORT: 1099
+        restart: on-failure
+    kafka-manager:
+        image: sheepkiller/kafka-manager
+        environment:
+            ZK_HOSTS: zk01,zk02
+            APPLICATION_SECRET: letmein
+    nimbus:
+        image: moz411/storm
+        hostname: nimbus
+        restart: on-failure
+        command: storm nimbus
+    supervisor:
+        image: moz411/storm
+        hostname: supervisor
+        restart: on-failure
+        command: storm supervisor
+    stormui:
+        image: moz411/storm
+        restart: on-failure
+        command: storm ui
+    producer:
+        image: moz411/storm
+        hostname: producer
+        volumes:
+            - /Users/moz/Documents/p3:/data
+        ports:
+            - "2222:22"
