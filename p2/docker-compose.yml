@@ -1,0 +1,45 @@
+version: "2"
+
+services:
+  driver:
+    image: mylab33.com:5000/p2
+    hostname: driver
+    user: root
+    entrypoint: bash -c "service ssh restart && pyspark"
+    ports:
+    - 8889:8888
+    - 2222:22
+    volumes:
+    - /Users/moz/jovyan/Notebooks:/root/Notebooks
+    - /Users/moz/Documents/p2:/data
+    environment:
+    - PYSPARK_PYTHON=python3.6
+    - PYSPARK_DRIVER_PYTHON=jupyter
+    - PYSPARK_DRIVER_PYTHON_OPTS=notebook --allow-root --ip 0.0.0.0
+    - AWS_ACCESS_KEY_ID=minio
+    - AWS_SECRET_ACCESS_KEY=minio123
+  master:
+    image: mylab33.com:5000/p2
+    hostname: master
+    entrypoint: bash -c "service ssh restart && spark-class org.apache.spark.deploy.master.Master"
+    environment:
+    - AWS_ACCESS_KEY_ID=minio
+    - AWS_SECRET_ACCESS_KEY=minio123
+  worker:
+    image: mylab33.com:5000/p2
+    entrypoint: bash -c "service ssh restart && spark-class org.apache.spark.deploy.worker.Worker spark://master:7077"
+    volumes:
+    - keras:/root/.keras
+    environment:
+    - AWS_ACCESS_KEY_ID=minio
+    - AWS_SECRET_ACCESS_KEY=minio123
+  minio:
+    image: minio/minio
+    hostname: minio
+    entrypoint: minio server /data
+    volumes:
+    - /Users/moz/Documents/p2:/data
+    - minio:/root/.minio
+    environment:
+    - MINIO_ACCESS_KEY=minio
+    - MINIO_SECRET_KEY=minio123
